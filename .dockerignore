@@ -1,0 +1,9 @@
+node_modules
+dist
+.astro
+.env
+.env.*
+.git
+email-previews
+NeoSapients-Sample-Cognition-Report.pdf
+data

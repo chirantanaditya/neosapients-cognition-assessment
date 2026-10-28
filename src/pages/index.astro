@@ -1,0 +1,41 @@
+---
+import '../styles/styles.css';
+import '../styles/result-screen.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#190636" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
+    <meta
+      name="description"
+      content="Discover your Enterprise AI Cognition Score and how knowledge, memory and governance support accountable AI."
+    />
+    <title>Enterprise AI Cognition Score · NeoSapients</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+    <div id="idle-modal" class="modal" hidden>
+      <section role="dialog" aria-modal="true" aria-labelledby="idle-title">
+        <div class="modal-symbol">↻</div>
+        <h2 id="idle-title">Still exploring?</h2>
+        <p>
+          To keep your details private, this experience will restart in
+          <strong id="idle-count">20</strong> seconds.
+        </p>
+        <button class="primary" id="keep-going">Yes, keep going <span>→</span></button>
+        <button class="text-button" id="idle-reset">Finish and clear my session</button>
+      </section>
+    </div>
+    <script>
+      import '../scripts/app.js';
+    </script>
+  </body>
+</html>

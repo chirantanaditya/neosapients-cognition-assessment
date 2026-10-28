@@ -1,0 +1,28 @@
+{
+  "name": "neosapients-cognition-assessment",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@astrojs/node": "^11.1.9",
+    "@astrojs/react": "^7.1.1",
+    "astro": "^7.4.2",
+    "better-sqlite3": "^13.0.3",
+    "lucide-react": "^1.63.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "recharts": "^3.10.1",
+    "typescript": "^6.0.3"
+  }
+}

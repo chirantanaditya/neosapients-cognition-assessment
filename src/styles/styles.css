@@ -110,3 +110,17 @@ button{user-select:none;-webkit-user-select:none}
 }
 @media(max-width:600px){.offline-badge{display:none}.local-status{white-space:normal}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Full-screen attract mode for an unattended portrait kiosk. */
+.attract-mode{position:fixed;inset:0;z-index:1000;width:100vw;height:100svh;background:#000;overflow:hidden;touch-action:none}
+.attract-mode[hidden]{display:none}
+.attract-mode video{display:block;width:100%;height:100%;object-fit:cover;background:#000;pointer-events:none}
+body.attract-mode-active{overflow:hidden}
+body.attract-mode-active .attract-mode{cursor:none}
+
+/* Android TV: remote focus and readable controls at viewing distance. */
+.brand-link{display:block;border:0;padding:0;background:transparent;border-radius:5px}
+.native-tv button:focus,.native-tv a:focus,.native-tv input:focus,.native-tv textarea:focus,.native-tv summary:focus{outline:5px solid #a25afb;outline-offset:6px;box-shadow:0 0 0 3px #fff,0 0 28px #7e3eab66}
+.native-tv .choice:focus,.native-tv .rank-choice:focus{border-color:#6f309a;background:#f1e4fa;transform:scale(1.015)}
+.native-tv .brand-link:focus{outline-width:4px}
+@media(orientation:landscape) and (min-width:1200px){.native-tv .question-content h1{font-size:clamp(36px,3vw,54px)}.native-tv .choice-text{font-size:clamp(19px,1.45vw,25px)}.native-tv .rank-choice,.native-tv .role{font-size:16px}.native-tv .helper{font-size:16px}.native-tv .footbar,.native-tv .intro-footer{font-size:13px}}

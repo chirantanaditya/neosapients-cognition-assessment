@@ -12,7 +12,5 @@ ENV PORT=4321
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-RUN mkdir -p /app/data
-VOLUME ["/app/data"]
 EXPOSE 4321
 CMD ["npm", "start"]

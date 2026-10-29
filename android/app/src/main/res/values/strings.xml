@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NeoSapients Cognition</string>
+    <string name="title_activity_main">NeoSapients Cognition</string>
+    <string name="package_name">com.neosapients.cognition</string>
+    <string name="custom_url_scheme">com.neosapients.cognition</string>
+</resources>

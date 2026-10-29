@@ -1,63 +1,5 @@
 ---
-import {isLocalAdminRequest} from '../lib/admin.js';
-import {getAssessmentStats, listAssessments} from '../lib/database.js';
 import '../styles/admin.css';
-
-export const prerender = false;
-
-const allowed = isLocalAdminRequest(Astro.request, Astro.clientAddress);
-if (!allowed) Astro.response.status = 403;
-
-const url = new URL(Astro.request.url);
-const search = (url.searchParams.get('q') || '').trim().slice(0, 100);
-const requestedPage = Math.max(1, Number.parseInt(url.searchParams.get('page') || '1', 10) || 1);
-const pageSize = 50;
-let result = allowed ? listAssessments({search, limit: pageSize, offset: (requestedPage - 1) * pageSize}) : {rows: [], total: 0};
-const stats = allowed ? getAssessmentStats() : null;
-const pageCount = Math.max(1, Math.ceil(result.total / pageSize));
-const page = Math.min(requestedPage, pageCount);
-if (allowed && page !== requestedPage) {
-  result = listAssessments({search, limit: pageSize, offset: (page - 1) * pageSize});
-}
-
-type AnswerItem = {topic: string; result: string};
-type RecommendationItem = {title: string; body: string};
-type AssessmentRow = {
-  id: string; submitted_at: string; name: string; email: string; company: string; role: string;
-  marketing_consent: number; assessment_path: string; baseline: string; score: number | null;
-  tier: string | null; tier_description: string | null; knowledge_score: number | null;
-  memory_score: number | null; governance_score: number | null; ranking_json: string;
-  answers_json: string; recommendations_json: string; callback_requested: number | null;
-  callback_requested_at: string | null;
-};
-type AdminRow = AssessmentRow & {
-  priorities: string[]; answers: AnswerItem[]; recommendations: RecommendationItem[];
-};
-
-function parseJson<T>(value: unknown): T[] {
-  try { return JSON.parse(typeof value === 'string' ? value : '[]'); } catch { return []; }
-}
-
-function formatDate(value: string | null) {
-  if (!value) return '—';
-  return new Intl.DateTimeFormat('en-IN', {
-    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata',
-  }).format(new Date(value));
-}
-
-const rows: AdminRow[] = (result.rows as AssessmentRow[]).map((row: AssessmentRow) => ({
-  ...row,
-  priorities: parseJson<string>(row.ranking_json),
-  answers: parseJson<AnswerItem>(row.answers_json),
-  recommendations: parseJson<RecommendationItem>(row.recommendations_json),
-}));
-
-function pageUrl(nextPage: number) {
-  const params = new URLSearchParams();
-  if (search) params.set('q', search);
-  if (nextPage > 1) params.set('page', String(nextPage));
-  return `/admin${params.size ? `?${params}` : ''}`;
-}
 ---
 
 <!doctype html>
@@ -70,87 +12,49 @@ function pageUrl(nextPage: number) {
     <title>Assessment responses · NeoSapients</title>
   </head>
   <body>
-    {!allowed ? (
-      <main class="denied">
-        <div><h1>Local access only.</h1><p>Open this page on the kiosk computer using localhost.</p></div>
-      </main>
-    ) : (
-      <main class="admin-shell">
-        <header class="admin-header">
-          <img class="admin-brand" src="/assets/logo.svg" alt="NeoSapients" />
-          <span class="admin-local">Local admin · Read only</span>
-        </header>
+    <main class="admin-shell">
+      <header class="admin-header">
+        <img class="admin-brand" src="/assets/logo.svg" alt="NeoSapients" />
+        <a class="return" href="/index.html">Return to assessment →</a>
+      </header>
 
-        <section class="title-row">
-          <div>
-            <div class="eyebrow">Enterprise AI Cognition Score</div>
-            <h1>Assessment responses</h1>
-            <p>Review completed assessments, inspect individual answers and export the full dataset for analysis.</p>
-          </div>
-          <a class="export" href="/api/admin/export.csv">Export all as CSV <span>↓</span></a>
-        </section>
-
-        <section class="stats" aria-label="Assessment summary">
-          <article class="stat"><small>Total responses</small><strong>{stats.total}</strong></article>
-          <article class="stat"><small>Scored assessments</small><strong>{stats.scored || 0}</strong></article>
-          <article class="stat"><small>Priority-only</small><strong>{stats.priority_only || 0}</strong></article>
-          <article class="stat"><small>Follow-up requests</small><strong>{stats.callback_requests || 0}</strong></article>
-          <article class="stat"><small>Average score</small><strong>{stats.average_score ?? '—'}</strong></article>
-        </section>
-
-        <div class="toolbar">
-          <form class="search" method="get" action="/admin">
-            <input name="q" value={search} placeholder="Search name, company, email, role or tier" aria-label="Search responses" />
-            <button type="submit">Search</button>
-          </form>
-          <span class="count">{result.total} matching {result.total === 1 ? 'response' : 'responses'}</span>
+      <section class="title-row">
+        <div>
+          <div class="eyebrow">On-device storage</div>
+          <h1>Assessment responses</h1>
+          <p>Review completed assessments stored on this TV and export the full dataset for backup.</p>
         </div>
+        <button class="export" id="export" type="button">Export all as CSV <span>↓</span></button>
+      </section>
 
-        {rows.length ? (
-          <div class="table-wrap">
-            <table class="responses">
-              <thead><tr><th>Participant</th><th>Company</th><th>Submitted</th><th>Path</th><th>Score</th><th>Tier</th><th>Follow-up</th><th>Response</th></tr></thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr>
-                    <td class="person" data-label="Participant"><strong>{row.name}</strong><span>{row.email || 'No email'}</span></td>
-                    <td data-label="Company">{row.company}<span class="muted">{row.role || 'Role not provided'}</span></td>
-                    <td data-label="Submitted">{formatDate(row.submitted_at)}</td>
-                    <td data-label="Path">{row.assessment_path === 'full' ? 'Full score' : 'Priorities'}</td>
-                    <td data-label="Score"><span class="score">{row.score ?? '—'}</span></td>
-                    <td data-label="Tier">{row.tier ? <span class="tier">{row.tier}</span> : '—'}</td>
-                    <td data-label="Follow-up">{row.callback_requested === 1 ? <span class="followup yes">Requested</span> : row.callback_requested === 0 ? <span class="followup no">Not now</span> : '—'}</td>
-                    <td data-label="Response">
-                      <details class="details">
-                        <summary>View details</summary>
-                        <div class="detail-panel">
-                          <div class="detail-grid">
-                            <div><small>Knowledge</small><b>{row.knowledge_score ?? '—'}</b></div>
-                            <div><small>Memory</small><b>{row.memory_score ?? '—'}</b></div>
-                            <div><small>Governance</small><b>{row.governance_score ?? '—'}</b></div>
-                          </div>
-                          <h3>Baseline</h3><div>{row.baseline}</div>
-                          <h3>Priorities</h3><ul>{row.priorities.map((item) => <li>{item}</li>)}</ul>
-                          {row.answers.length > 0 && <><h3>Answers</h3><ul>{row.answers.map((item) => <li>{item.topic}: {item.result}</li>)}</ul></>}
-                          <h3>Recommendations</h3><ul>{row.recommendations.map((item) => <li><strong>{item.title}</strong> — {item.body}</li>)}</ul>
-                        </div>
-                      </details>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : <div class="empty">No assessment responses found.</div>}
+      <p class="export-status" id="export-status" role="status"></p>
 
-        {pageCount > 1 && (
-          <nav class="pagination" aria-label="Response pages">
-            {page > 1 && <a href={pageUrl(page - 1)}>← Previous</a>}
-            <span>Page {page} of {pageCount}</span>
-            {page < pageCount && <a href={pageUrl(page + 1)}>Next →</a>}
-          </nav>
-        )}
-      </main>
-    )}
+      <section class="stats" aria-label="Assessment summary">
+        <article class="stat"><small>Total responses</small><strong id="stat-total">—</strong></article>
+        <article class="stat"><small>Scored assessments</small><strong id="stat-scored">—</strong></article>
+        <article class="stat"><small>Priority-only</small><strong id="stat-priority">—</strong></article>
+        <article class="stat"><small>Follow-up requests</small><strong id="stat-followup">—</strong></article>
+        <article class="stat"><small>Average score</small><strong id="stat-average">—</strong></article>
+      </section>
+
+      <div class="toolbar">
+        <form class="search" id="search-form" role="search">
+          <input id="search" type="search" placeholder="Search name, company, email, role or tier" aria-label="Search responses" />
+          <button type="submit">Search</button>
+        </form>
+        <span class="count" id="count">Loading responses…</span>
+      </div>
+
+      <div class="table-wrap" id="table-wrap" hidden>
+        <table class="responses">
+          <thead><tr><th>Participant</th><th>Company</th><th>Submitted</th><th>Path</th><th>Score</th><th>Tier</th><th>Follow-up</th><th>Response</th></tr></thead>
+          <tbody id="responses"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="empty">Loading assessment responses…</div>
+    </main>
+    <script>
+      import '../scripts/admin.js';
+    </script>
   </body>
 </html>

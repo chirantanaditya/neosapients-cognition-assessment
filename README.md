@@ -1,61 +1,102 @@
 # NeoSapients Enterprise AI Cognition Assessment
 
-Offline-first Astro application for a portrait touch display. The browser collects answers; the server validates and recalculates the result, then stores the completed response in a local SQLite database. No internet connection or external integration is required.
+Standalone, offline Android TV assessment kiosk built with Astro and Capacitor. The APK bundles the complete interface and stores completed assessments in an on-device SQLite database. It does not require a Node server or internet connection.
 
-## Run locally
+## Ready-to-install APK
 
-Requirements: Node.js 22.12 or later and a writable local directory for the database.
+The current debug build is:
 
-```bash
+```text
+artifacts/NeoSapients-Cognition-TV-debug-v1.0.apk
+```
+
+It is signed with the standard Android debug certificate and is suitable for sideloading and device testing. Create a separately signed release build before public distribution.
+
+## Install on an Android TV
+
+Enable developer options and USB or wireless debugging on the TV, connect with ADB, then run:
+
+```powershell
+adb install -r .\artifacts\NeoSapients-Cognition-TV-debug-v1.0.apk
+```
+
+The app appears in the TV launcher as **NeoSapients Cognition**. It supports Android 7.0 / API 24 and later, is locked to landscape, and is operated with the D-pad, Select, Back and the Android TV keyboard.
+
+## On-device behavior
+
+- Assessment questions, scoring, results, imagery, fonts and attract-mode video are bundled in the APK.
+- Completed submissions are validated in JavaScript and written transactionally to native SQLite.
+- The app does not request internet access.
+- An inactivity period starts the full-screen attract video; any remote or pointer action returns to a fresh assessment.
+- The Android Back button moves backward through the assessment. From the result it clears the session and returns to the start.
+- PDF generation is intentionally not included.
+
+### Response dashboard
+
+Hold **Select** on the NeoSapients logo for about two seconds to open the local response dashboard. The dashboard supports search, response details, summary statistics and CSV export.
+
+On Android 10 / API 29 and later, exports are saved to:
+
+```text
+Downloads/NeoSapients/
+```
+
+Older supported Android versions use the app's external documents directory. The dashboard displays the resulting path.
+
+Assessment records remain private to the installed application. Updating the APK with `adb install -r` retains them; uninstalling the app deletes its SQLite database. Export the CSV before uninstalling or clearing app data.
+
+## Browser development
+
+Requirements: Node.js 22.12 or later.
+
+```powershell
 npm install
-copy .env.example .env
 npm run dev
 ```
 
-Open `http://localhost:4321`. Add `?preview` to review the complete UI without creating a database record.
+Open `http://localhost:4321`. Browser development uses local storage as a fallback for saved responses. Open `/admin/` for the development dashboard. Add `?preview` to inspect the assessment without saving a response.
 
-The layout includes a dedicated portrait-kiosk mode for displays at least 900 × 1200 CSS pixels, including common 1080 × 1920 vertical screens. Coarse-pointer devices receive larger touch targets, tap-safe controls, disabled hover movement, and overscroll containment.
+## Build the Android project
 
-## Local SQLite storage
+Requirements:
 
-The default database is `data/assessments.sqlite`. The directory is created automatically. To use another location, set `ASSESSMENT_DB_PATH` to an absolute path on the kiosk computer.
+- Node.js 22.12 or later
+- Android Studio with Android SDK 36
+- Java 21, including the JDK bundled with Android Studio
 
-The `assessment_submissions` table stores identity fields, the assessment path, total and pillar scores, priority ranking, individual answers, recommendations, and a complete JSON snapshot. Submission ID is the primary key, so retrying the same save cannot create a duplicate row.
+Build and copy the web bundle into the Android project:
 
-Back up the database regularly. Shut down the app before manually copying the database so its WAL file is fully consolidated.
-
-## Local response dashboard
-
-Open `http://localhost:4321/admin` on the kiosk computer to review responses, search participant and company fields, inspect answers and recommendations, see follow-up requests, or export the complete dataset as CSV.
-
-The dashboard is read-only, is not linked from the participant assessment, and rejects requests that do not originate from localhost. Remote administration is intentionally disabled.
-
-## Offline touch-TV setup
-
-- Run the Astro server and browser on the same TV computer.
-- Start the server automatically when the computer logs in.
-- Launch Chrome or Edge in kiosk/full-screen mode at `http://localhost:4321`.
-- Keep the database directory on a persistent local drive and include it in backups.
-- All required fonts, images, scripts, and styles are bundled locally; external links have been removed from the assessment flow.
-
-## Build and deploy
-
-```bash
-npm run check
-npm run build
-npm start
+```powershell
+npm install
+npm run android:sync
 ```
 
-The project uses Astro's standalone Node adapter and the `better-sqlite3` driver. Start `dist/server/entry.mjs` on the kiosk computer. The included Dockerfile uses Node 22 and declares `/app/data` as a persistent volume.
+Build a debug APK:
 
-The save endpoint is `POST /api/assessment`. It accepts only same-origin JSON, validates the lead and ranking, recalculates every score on the server, and writes the validated record to SQLite.
+```powershell
+cd android
+.\gradlew.bat assembleDebug
+```
 
-## Pre-launch checks
+The generated APK is written to:
 
-- Submit one full scored assessment and confirm one SQLite row is written.
-- Submit the “None yet” route and confirm no score is fabricated.
-- Retry a submission with the same ID and verify no duplicate row is created.
-- Restart the server and confirm existing records remain available in `data/assessments.sqlite`.
-- Confirm the inactivity reset clears participant details from the visible browser session.
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-Astro runs from `src/` and `public/`; obsolete pre-Astro and external-integration reference files are excluded from the repository.
+Or open the native project in Android Studio:
+
+```powershell
+npm run android:open
+```
+
+## Before deployment
+
+- Complete one full scored assessment and confirm it appears in the dashboard.
+- Complete the priority-only route and confirm no score is fabricated.
+- Restart the app and confirm both records remain available.
+- Export a CSV and verify it opens with all expected columns.
+- Test every screen using only the TV remote.
+- Confirm the Android keyboard works for name and company entry.
+- Let the kiosk idle and confirm the attract video starts and exits correctly.
+- Create and securely store a release signing key before distributing a production APK.

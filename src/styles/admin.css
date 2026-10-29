@@ -8,3 +8,14 @@
 .followup{display:inline-block;padding:5px 9px;border-radius:99px;font-size:10px;white-space:nowrap}.followup.yes{background:#e3f3e9;color:#2d7757}.followup.no{background:#f0eaf4;color:#806b8c}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:850px){.stats{grid-template-columns:1fr 1fr}}
+
+/* Static, on-device dashboard additions. */
+button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:4px solid var(--violet);outline-offset:4px}
+.return{font-size:12px;color:#69417f;text-underline-offset:4px}
+.title-row{margin-bottom:12px}
+.export{border:0;cursor:pointer}.export:disabled{opacity:.5}
+.export-status{min-height:22px;margin:0 0 12px;color:#6f5880;font-size:11px}
+.table-wrap[hidden],.empty[hidden]{display:none}
+.native-tv button,.native-tv a,.native-tv input,.native-tv summary{min-height:56px}
+.native-tv .details summary{display:flex;align-items:center}
+.native-tv .count,.native-tv .export-status{font-size:13px}

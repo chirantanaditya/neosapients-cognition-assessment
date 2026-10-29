@@ -22,17 +22,18 @@ import '../styles/result-screen.css';
   <body>
     <div id="app"></div>
     <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
-    <div id="idle-modal" class="modal" hidden>
-      <section role="dialog" aria-modal="true" aria-labelledby="idle-title">
-        <div class="modal-symbol">↻</div>
-        <h2 id="idle-title">Still exploring?</h2>
-        <p>
-          To keep your details private, this experience will restart in
-          <strong id="idle-count">20</strong> seconds.
-        </p>
-        <button class="primary" id="keep-going">Yes, keep going <span>→</span></button>
-        <button class="text-button" id="idle-reset">Finish and clear my session</button>
-      </section>
+    <div id="attract-mode" class="attract-mode" hidden aria-label="NeoSapients showcase video">
+      <video
+        id="attract-video"
+        muted
+        playsinline
+        preload="none"
+        disablepictureinpicture
+        disableRemotePlayback
+        aria-label="NeoSapients showcase video"
+      >
+        <source src="/assets/attract-mode.mp4" type="video/mp4" />
+      </video>
     </div>
     <script>
       import '../scripts/app.js';

@@ -1,4 +1,6 @@
 import {setCallbackPreference} from '../../../lib/database.js';
+import {integrationRuntimeEnv} from '../../../lib/integration-runtime.js';
+import {deliverCallbackPreference} from '../../../lib/integrations.js';
 
 export const prerender = false;
 
@@ -25,7 +27,8 @@ export async function POST({request}) {
     const validId = typeof input.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.id);
     if (!validId || typeof input.requested !== 'boolean') return json({ok: false}, 400);
     if (!setCallbackPreference(input.id, input.requested)) return json({ok: false}, 404);
-    return json({ok: true, requested: input.requested});
+    const integrations = await deliverCallbackPreference(input.id, input.requested, integrationRuntimeEnv());
+    return json({ok: true, requested: input.requested, integrations});
   } catch (error) {
     console.error('Callback preference failed:', error);
     return json({ok: false}, 500);

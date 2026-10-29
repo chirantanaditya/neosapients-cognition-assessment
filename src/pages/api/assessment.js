@@ -1,4 +1,6 @@
 import {saveAssessment} from '../../lib/database.js';
+import {integrationRuntimeEnv} from '../../lib/integration-runtime.js';
+import {deliverAssessment} from '../../lib/integrations.js';
 import {validateAndScoreSubmission} from '../../lib/submission.js';
 
 export const prerender = false;
@@ -28,7 +30,10 @@ export async function POST({request}) {
     if (!raw || raw.length > 30000) return json({ok: false, message: 'Invalid request.'}, 400);
     const record = validateAndScoreSubmission(JSON.parse(raw));
     const source = request.headers.get('referer') || new URL(request.url).origin;
-    return json(saveAssessment(record, source));
+    const saved = saveAssessment(record, source);
+    const integrations = await deliverAssessment(record, integrationRuntimeEnv());
+    console.info('Assessment integrations:', record.id, integrations);
+    return json({...saved, integrations});
   } catch (error) {
     console.error('Assessment save failed:', error);
     const invalid = error instanceof SyntaxError || (error instanceof Error && error.message.startsWith('INVALID_'));
@@ -36,7 +41,7 @@ export async function POST({request}) {
       ok: false,
       message: invalid
         ? 'The assessment submission was incomplete or invalid.'
-        : 'We could not save the result on this device. Please try again.',
+        : 'We could not save the result. Please try again.',
     }, invalid ? 400 : 500);
   }
 }

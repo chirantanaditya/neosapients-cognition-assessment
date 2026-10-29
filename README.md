@@ -1,61 +1,68 @@
 # NeoSapients Enterprise AI Cognition Assessment
 
-Offline-first Astro application for a portrait touch display. The browser collects answers; the server validates and recalculates the result, then stores the completed response in a local SQLite database. No internet connection or external integration is required.
+Online Astro application for the Enterprise AI Cognition assessment. The server validates and recalculates every submission, stores it in SQLite, and independently fans the result out to Resend, Zapier, and an optional Google Sheets webhook.
+
+The standalone offline Android TV build lives on the `cognition-offline` branch.
 
 ## Run locally
 
-Requirements: Node.js 22.12 or later and a writable local directory for the database.
+Requirements: Node.js 22.12 or later and a writable local directory for SQLite.
 
 ```bash
-npm install
+npm ci
 copy .env.example .env
 npm run dev
 ```
 
-Open `http://localhost:4321`. Add `?preview` to review the complete UI without creating a database record.
+Open `http://localhost:4321`. Add `?preview` to review the UI without saving a response or calling integrations.
 
-The layout includes a dedicated portrait-kiosk mode for displays at least 900 × 1200 CSS pixels, including common 1080 × 1920 vertical screens. Coarse-pointer devices receive larger touch targets, tap-safe controls, disabled hover movement, and overscroll containment.
+## Online integration configuration
 
-## Local SQLite storage
+```dotenv
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=NeoSapients Cognition <cognition@neosapients.ai>
+ZAPIER_WEBHOOK_URL=
+GOOGLE_SHEETS_WEBHOOK_URL=
+INTEGRATION_TIMEOUT_MS=8000
+```
 
-The default database is `data/assessments.sqlite`. The directory is created automatically. To use another location, set `ASSESSMENT_DB_PATH` to an absolute path on the kiosk computer.
+- Resend sends the participant a transactional HTML and text result email when they provide an email address. It uses `assessment-result/<submission-id>` as the idempotency key.
+- Zapier receives `assessment.completed` and `assessment.callback.updated` JSON events.
+- Google Sheets receives the same webhook events. It is optional and reports `skipped` until its URL is configured.
+- Provider calls run concurrently. One unavailable integration does not block the other providers or discard the locally saved assessment.
+- `RESEND_FROM_EMAIL` must use a domain verified in the Resend account.
 
-The `assessment_submissions` table stores identity fields, the assessment path, total and pillar scores, priority ranking, individual answers, recommendations, and a complete JSON snapshot. Submission ID is the primary key, so retrying the same save cannot create a duplicate row.
+Sensitive values belong in local `.env` files or deployment secrets; `.env` is ignored by Git.
 
-Back up the database regularly. Shut down the app before manually copying the database so its WAL file is fully consolidated.
+## Webhook contract
 
-## Local response dashboard
+Assessment events have this shape:
 
-Open `http://localhost:4321/admin` on the kiosk computer to review responses, search participant and company fields, inspect answers and recommendations, see follow-up requests, or export the complete dataset as CSV.
+```json
+{
+  "event": "assessment.completed",
+  "eventId": "assessment.completed/<submission-id>",
+  "version": 1,
+  "occurredAt": "ISO-8601 timestamp",
+  "assessment": {}
+}
+```
 
-The dashboard is read-only, is not linked from the participant assessment, and rejects requests that do not originate from localhost. Remote administration is intentionally disabled.
+Callback events contain `submissionId` and a boolean `requested` value. Zapier and the Google Sheets receiver should deduplicate using `eventId`.
 
-## Offline touch-TV setup
+## Local persistence and dashboard
 
-- Run the Astro server and browser on the same TV computer.
-- Start the server automatically when the computer logs in.
-- Launch Chrome or Edge in kiosk/full-screen mode at `http://localhost:4321`.
-- Keep the database directory on a persistent local drive and include it in backups.
-- All required fonts, images, scripts, and styles are bundled locally; external links have been removed from the assessment flow.
+The default database is `data/assessments.sqlite`; override it with `ASSESSMENT_DB_PATH`. Submission IDs are primary keys, so saving the same assessment twice cannot create two local rows.
+
+Open `/admin` from localhost to review responses, search participants, inspect recommendations, and export CSV. The dashboard is intentionally restricted to localhost.
 
 ## Build and deploy
 
 ```bash
 npm run check
+npm test
 npm run build
 npm start
 ```
 
-The project uses Astro's standalone Node adapter and the `better-sqlite3` driver. Start `dist/server/entry.mjs` on the kiosk computer. The included Dockerfile uses Node 22 and declares `/app/data` as a persistent volume.
-
-The save endpoint is `POST /api/assessment`. It accepts only same-origin JSON, validates the lead and ranking, recalculates every score on the server, and writes the validated record to SQLite.
-
-## Pre-launch checks
-
-- Submit one full scored assessment and confirm one SQLite row is written.
-- Submit the “None yet” route and confirm no score is fabricated.
-- Retry a submission with the same ID and verify no duplicate row is created.
-- Restart the server and confirm existing records remain available in `data/assessments.sqlite`.
-- Confirm the inactivity reset clears participant details from the visible browser session.
-
-Astro runs from `src/` and `public/`; obsolete pre-Astro and external-integration reference files are excluded from the repository.
+This branch currently uses Astro's standalone Node adapter and `better-sqlite3`, so it needs a Node host with persistent storage. A full Cloudflare Workers deployment requires replacing SQLite with a Workers-compatible store such as D1 and switching to the Cloudflare adapter; merely adding secrets in Cloudflare does not make the Node bundle Workers-compatible.

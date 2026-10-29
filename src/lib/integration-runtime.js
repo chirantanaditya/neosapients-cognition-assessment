@@ -1,5 +1,3 @@
-import {getSecret} from 'astro:env/server';
-
 const NAMES = [
   'RESEND_API_KEY',
   'RESEND_FROM_EMAIL',
@@ -8,6 +6,6 @@ const NAMES = [
   'INTEGRATION_TIMEOUT_MS',
 ];
 
-export function integrationRuntimeEnv() {
-  return Object.fromEntries(NAMES.map((name) => [name, getSecret(name) || '']));
+export function integrationRuntimeEnv(runtimeEnv = {}) {
+  return Object.fromEntries(NAMES.map((name) => [name, runtimeEnv[name] || '']));
 }

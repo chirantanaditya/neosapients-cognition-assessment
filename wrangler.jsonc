@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "neosapients-cognition-assessment",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-10-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "neosapients-cognition-assessments",
+      "database_id": "743c5c14-af70-4d35-b2cb-46d9ef91bdd5",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": {"enabled": true},
+  "upload_source_maps": true
+}

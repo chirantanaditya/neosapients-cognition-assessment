@@ -2,6 +2,7 @@ import {saveAssessment} from '../../lib/database.js';
 import {integrationRuntimeEnv} from '../../lib/integration-runtime.js';
 import {deliverAssessment} from '../../lib/integrations.js';
 import {validateAndScoreSubmission} from '../../lib/submission.js';
+import {env} from 'cloudflare:workers';
 
 export const prerender = false;
 
@@ -30,8 +31,8 @@ export async function POST({request}) {
     if (!raw || raw.length > 30000) return json({ok: false, message: 'Invalid request.'}, 400);
     const record = validateAndScoreSubmission(JSON.parse(raw));
     const source = request.headers.get('referer') || new URL(request.url).origin;
-    const saved = saveAssessment(record, source);
-    const integrations = await deliverAssessment(record, integrationRuntimeEnv());
+    const saved = await saveAssessment(env.DB, record, source);
+    const integrations = await deliverAssessment(record, integrationRuntimeEnv(env));
     console.info('Assessment integrations:', record.id, integrations);
     return json({...saved, integrations});
   } catch (error) {

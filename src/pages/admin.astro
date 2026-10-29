@@ -1,29 +1,63 @@
 ---
-import {isLocalAdminRequest} from '../lib/admin.js';
+import {env} from 'cloudflare:workers';
+import {
+  ADMIN_COOKIE_NAME,
+  ADMIN_SESSION_SECONDS,
+  createAdminSessionToken,
+  hasAdminSession,
+  verifyAdminPassword,
+} from '../lib/admin.js';
 import {getAssessmentStats, listAssessments} from '../lib/database.js';
 import '../styles/admin.css';
 
 export const prerender = false;
 
-const allowed = isLocalAdminRequest(Astro.request, Astro.clientAddress);
-if (!allowed) Astro.response.status = 403;
-
 const url = new URL(Astro.request.url);
+const adminPassword = env.ADMIN_PASSWORD || '';
+const passwordConfigured = Boolean(adminPassword);
+let authError = '';
+
+if (passwordConfigured && Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const intent = String(form.get('intent') || 'login');
+  if (intent === 'logout') {
+    Astro.cookies.delete(ADMIN_COOKIE_NAME, {path: '/'});
+    return Astro.redirect('/admin', 303);
+  }
+  const suppliedPassword = String(form.get('password') || '');
+  if (await verifyAdminPassword(suppliedPassword, adminPassword)) {
+    Astro.cookies.set(ADMIN_COOKIE_NAME, await createAdminSessionToken(adminPassword), {
+      httpOnly: true,
+      maxAge: ADMIN_SESSION_SECONDS,
+      path: '/',
+      sameSite: 'strict',
+      secure: url.protocol === 'https:',
+    });
+    return Astro.redirect('/admin', 303);
+  }
+  authError = 'Incorrect password.';
+}
+
+const allowed = passwordConfigured && await hasAdminSession(Astro.cookies, adminPassword);
+if (!passwordConfigured) Astro.response.status = 500;
+else if (!allowed) Astro.response.status = 401;
+
 const search = (url.searchParams.get('q') || '').trim().slice(0, 100);
 const requestedPage = Math.max(1, Number.parseInt(url.searchParams.get('page') || '1', 10) || 1);
 const pageSize = 50;
-let result = allowed ? listAssessments({search, limit: pageSize, offset: (requestedPage - 1) * pageSize}) : {rows: [], total: 0};
-const stats = allowed ? getAssessmentStats() : null;
+let result = allowed ? await listAssessments(env.DB, {search, limit: pageSize, offset: (requestedPage - 1) * pageSize}) : {rows: [], total: 0};
+const stats = allowed ? await getAssessmentStats(env.DB) : null;
 const pageCount = Math.max(1, Math.ceil(result.total / pageSize));
 const page = Math.min(requestedPage, pageCount);
 if (allowed && page !== requestedPage) {
-  result = listAssessments({search, limit: pageSize, offset: (page - 1) * pageSize});
+  result = await listAssessments(env.DB, {search, limit: pageSize, offset: (page - 1) * pageSize});
 }
 
 type AnswerItem = {topic: string; result: string};
 type RecommendationItem = {title: string; body: string};
 type AssessmentRow = {
-  id: string; submitted_at: string; name: string; email: string; company: string; role: string;
+  id: string; submitted_at: string; name: string; first_name: string; last_name: string;
+  email: string; company: string; role: string;
   marketing_consent: number; assessment_path: string; baseline: string; score: number | null;
   tier: string | null; tier_description: string | null; knowledge_score: number | null;
   memory_score: number | null; governance_score: number | null; ranking_json: string;
@@ -70,15 +104,32 @@ function pageUrl(nextPage: number) {
     <title>Assessment responses · NeoSapients</title>
   </head>
   <body>
-    {!allowed ? (
+    {!passwordConfigured ? (
       <main class="denied">
-        <div><h1>Local access only.</h1><p>Open this page on the kiosk computer using localhost.</p></div>
+        <div><h1>Admin password missing.</h1><p>Add <code>ADMIN_PASSWORD</code> to the server environment and restart the app.</p></div>
+      </main>
+    ) : !allowed ? (
+      <main class="admin-login">
+        <form method="post" action="/admin" class="login-card">
+          <img class="admin-brand" src="/assets/logo.svg" alt="NeoSapients" />
+          <div class="eyebrow">Enterprise AI Cognition Score</div>
+          <h1>Admin access</h1>
+          <p>Enter the admin password to review assessment responses.</p>
+          <input type="hidden" name="intent" value="login" />
+          <label for="admin-password">Password</label>
+          <input id="admin-password" name="password" type="password" autocomplete="current-password" required autofocus aria-describedby="auth-error" />
+          <div id="auth-error" class="auth-error" role="alert">{authError}</div>
+          <button type="submit">Sign in</button>
+        </form>
       </main>
     ) : (
       <main class="admin-shell">
         <header class="admin-header">
           <img class="admin-brand" src="/assets/logo.svg" alt="NeoSapients" />
-          <span class="admin-local">Local admin · Read only</span>
+          <div class="admin-session">
+            <span class="admin-local">Secure admin · Read only</span>
+            <form method="post" action="/admin"><input type="hidden" name="intent" value="logout" /><button type="submit">Sign out</button></form>
+          </div>
         </header>
 
         <section class="title-row">
@@ -100,7 +151,7 @@ function pageUrl(nextPage: number) {
 
         <div class="toolbar">
           <form class="search" method="get" action="/admin">
-            <input name="q" value={search} placeholder="Search name, company, email, role or tier" aria-label="Search responses" />
+            <input name="q" value={search} placeholder="Search first name, last name, company, email, role or tier" aria-label="Search responses" />
             <button type="submit">Search</button>
           </form>
           <span class="count">{result.total} matching {result.total === 1 ? 'response' : 'responses'}</span>
@@ -113,7 +164,7 @@ function pageUrl(nextPage: number) {
               <tbody>
                 {rows.map((row) => (
                   <tr>
-                    <td class="person" data-label="Participant"><strong>{row.name}</strong><span>{row.email || 'No email'}</span></td>
+                    <td class="person" data-label="Participant"><strong>{row.first_name} {row.last_name}</strong><span>{row.email || 'No email'}</span></td>
                     <td data-label="Company">{row.company}<span class="muted">{row.role || 'Role not provided'}</span></td>
                     <td data-label="Submitted">{formatDate(row.submitted_at)}</td>
                     <td data-label="Path">{row.assessment_path === 'full' ? 'Full score' : 'Priorities'}</td>

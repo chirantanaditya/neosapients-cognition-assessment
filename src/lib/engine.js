@@ -17,7 +17,7 @@
  ];
  function path(answer){return answer===0?'none':'full';}
  function steps(answer,questions){
-  const priorityStep={id:'R1',kind:'rank',topic:'Your priorities',q:path(answer)==='none'?'What’s holding you back? Pick your top challenges in order of importance.':'Pick your top challenges in order of importance.'};
+  const priorityStep={id:'R1',kind:'rank',topic:'Your priorities',q:'What’s holding you back? Pick at least 3 challenges in order of importance.'};
   return path(answer)==='none'?[baseline[0],priorityStep]:[baseline[0],...questions.map(q=>({...q,kind:'scored',q:'Which statement is closest to how your AI agents operate today?'})),priorityStep];
  }
  function priorityActions(ranking){return ranking.map(i=>{const p=priorities[i];return {topic:p[0],title:p[1],body:p[2]};});}

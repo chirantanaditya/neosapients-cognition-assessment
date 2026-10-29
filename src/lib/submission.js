@@ -25,8 +25,12 @@ export function validateAndScoreSubmission(input) {
 
   const submittedAt = new Date().toISOString();
   const rawLead = input.lead || {};
+  const firstName = cleanText(rawLead.firstName, 70, 'FIRST_NAME');
+  const lastName = cleanText(rawLead.lastName, 70, 'LAST_NAME');
   const lead = {
-    name: cleanText(rawLead.name, 140, 'NAME'),
+    firstName,
+    lastName,
+    name: `${firstName} ${lastName}`,
     email: cleanText(rawLead.email || '', 254, 'EMAIL', false).toLowerCase(),
     company: cleanText(rawLead.company, 140, 'COMPANY'),
     role: cleanText(rawLead.role || '', 60, 'ROLE', false),

@@ -1,5 +1,6 @@
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_RESEND_FROM = 'NeoSapients Cognition <cognition@neosapients.ai>';
+const COGNITION_OFFICER_BOOKING_URL = 'https://calendly.com/d/d3jg-s8t-fxy/connect-with-neosapients';
 
 function envValue(runtimeEnv, name) {
   const runtimeValue = runtimeEnv?.[name];
@@ -28,7 +29,8 @@ function escapeHtml(value) {
 }
 
 function assessmentEmail(record) {
-  const firstName = escapeHtml(record.name.split(/\s+/)[0] || 'there');
+  const recipientFirstName = record.firstName || record.name.split(/\s+/)[0] || 'there';
+  const firstName = escapeHtml(recipientFirstName);
   const score = record.path === 'full'
     ? `<div style="margin:22px 0;padding:20px;border-radius:12px;background:#f4eef9"><div style="font-size:12px;letter-spacing:2px;color:#85659a">YOUR COGNITION SCORE</div><div style="font-size:38px;color:#190636"><strong>${record.score}</strong><span style="font-size:16px"> / 100 · ${escapeHtml(record.tier)}</span></div><p style="margin-bottom:0;color:#644f70">${escapeHtml(record.tierDescription)}</p></div>`
     : '<p style="padding:18px;border-radius:12px;background:#f4eef9;color:#392170">Your priorities are the starting point for a practical Enterprise Cognition roadmap.</p>';
@@ -40,7 +42,7 @@ function assessmentEmail(record) {
     ? `Your Enterprise AI Cognition Score: ${record.score}/100`
     : 'Your Enterprise AI priorities';
   const text = [
-    `Hi ${record.name.split(/\s+/)[0] || 'there'},`,
+    `Hi ${recipientFirstName},`,
     '',
     record.path === 'full' ? `Your Enterprise AI Cognition Score is ${record.score}/100 (${record.tier}).` : 'Your Enterprise AI priorities are ready.',
     '',
@@ -50,10 +52,13 @@ function assessmentEmail(record) {
     'Recommended next moves:',
     ...record.actions.slice(0, 3).map((action) => `- ${action.title}: ${action.body}`),
     '',
+    'NeoSapients can help you improve your score and assess each parameter in detail. Book time with our Cognition Officer to explore your next steps:',
+    COGNITION_OFFICER_BOOKING_URL,
+    '',
     'This is a directional self-assessment based on your answers, not an independent audit or industry benchmark.',
     'https://neosapients.ai',
   ].join('\n');
-  const html = `<div style="background:#f6f1fa;padding:30px 12px;font:15px/1.7 Arial,sans-serif;color:#392170"><div style="max-width:620px;margin:auto;background:#fff;border:1px solid #e5d8ed;border-radius:14px;overflow:hidden"><div style="background:#190636;color:#d7b7ff;padding:28px 32px"><div style="letter-spacing:3px;font-size:12px">NEOSAPIENTS</div><h1 style="font-size:27px;line-height:1.3;font-weight:400;margin:18px 0 0">Your Enterprise Cognition starting point</h1></div><div style="padding:26px 32px"><p>Hi ${firstName},</p><p>Thank you for completing the Enterprise AI Cognition assessment.</p>${score}<h2 style="font-size:18px;color:#190636">Your priorities</h2><ol>${priorities}</ol><h2 style="font-size:18px;color:#190636">Recommended next moves</h2><ol>${actions}</ol><p><a href="https://neosapients.ai" style="display:inline-block;padding:11px 20px;border-radius:7px;background:#392170;color:#fff;text-decoration:none">Explore Enterprise Cognition →</a></p><p style="font-size:11px;color:#947ba3">Directional self-assessment based on your answers, not an independent audit or industry benchmark. <a href="https://neosapients.ai/privacy-policy">Privacy policy</a></p></div></div></div>`;
+  const html = `<div style="background:#f6f1fa;padding:30px 12px;font:15px/1.7 Arial,sans-serif;color:#392170"><div style="max-width:620px;margin:auto;background:#fff;border:1px solid #e5d8ed;border-radius:14px;overflow:hidden"><div style="background:#190636;color:#d7b7ff;padding:28px 32px"><div style="letter-spacing:3px;font-size:12px">NEOSAPIENTS</div><h1 style="font-size:27px;line-height:1.3;font-weight:400;margin:18px 0 0">Your Enterprise Cognition starting point</h1></div><div style="padding:26px 32px"><p>Hi ${firstName},</p><p>Thank you for completing the Enterprise AI Cognition assessment.</p>${score}<h2 style="font-size:18px;color:#190636">Your priorities</h2><ol>${priorities}</ol><h2 style="font-size:18px;color:#190636">Recommended next moves</h2><ol>${actions}</ol><div style="margin:24px 0;padding:20px;border-radius:12px;background:#f4eef9"><p style="margin:0 0 14px;color:#392170">NeoSapients can help you improve your score and assess each parameter in detail. Book time with our Cognition Officer to explore your next steps.</p><a href="${COGNITION_OFFICER_BOOKING_URL}" style="display:inline-block;padding:11px 20px;border-radius:7px;background:#a25afb;color:#fff;text-decoration:none;font-weight:bold">Book time with our Cognition Officer</a></div><p style="font-size:11px;color:#947ba3">Directional self-assessment based on your answers, not an independent audit or industry benchmark. <a href="https://neosapients.ai/privacy-policy">Privacy policy</a></p></div></div></div>`;
   return {subject, text, html};
 }
 

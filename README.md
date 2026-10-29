@@ -54,7 +54,7 @@ Callback events contain `submissionId` and a boolean `requested` value. Zapier a
 
 The default database is `data/assessments.sqlite`; override it with `ASSESSMENT_DB_PATH`. Submission IDs are primary keys, so saving the same assessment twice cannot create two local rows.
 
-Open `/admin` from localhost to review responses, search participants, inspect recommendations, and export CSV. The dashboard is intentionally restricted to localhost.
+Set `ADMIN_PASSWORD`, then open `/admin` from localhost and sign in to review responses, search participants, inspect recommendations, and export CSV. The dashboard and export are restricted to localhost and an HTTP-only eight-hour admin session.
 
 ## Build and deploy
 

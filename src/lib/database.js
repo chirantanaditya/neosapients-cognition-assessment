@@ -1,158 +1,101 @@
-import {mkdirSync} from 'node:fs';
-import path from 'node:path';
-import Database from 'better-sqlite3';
-
-let database;
-
-function databaseFile() {
-  const configured = process.env.ASSESSMENT_DB_PATH?.trim();
-  return path.resolve(configured || path.join(process.cwd(), 'data', 'assessments.sqlite'));
-}
-
-function openDatabase() {
-  if (database) return database;
-
-  const file = databaseFile();
-  mkdirSync(path.dirname(file), {recursive: true});
-  database = new Database(file);
-  database.exec(`
-    PRAGMA journal_mode = WAL;
-    PRAGMA synchronous = FULL;
-    PRAGMA busy_timeout = 5000;
-
-    CREATE TABLE IF NOT EXISTS assessment_submissions (
-      id TEXT PRIMARY KEY,
-      submitted_at TEXT NOT NULL,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL DEFAULT '',
-      company TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT '',
-      marketing_consent INTEGER NOT NULL DEFAULT 0 CHECK (marketing_consent IN (0, 1)),
-      assessment_path TEXT NOT NULL CHECK (assessment_path IN ('full', 'none')),
-      baseline TEXT NOT NULL,
-      score INTEGER,
-      tier TEXT,
-      tier_description TEXT,
-      knowledge_score INTEGER,
-      memory_score INTEGER,
-      governance_score INTEGER,
-      ranking_json TEXT NOT NULL,
-      answers_json TEXT NOT NULL,
-      recommendations_json TEXT NOT NULL,
-      record_json TEXT NOT NULL,
-      source TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_assessment_submitted_at
-      ON assessment_submissions(submitted_at);
-    CREATE INDEX IF NOT EXISTS idx_assessment_company
-      ON assessment_submissions(company);
-  `);
-  const columns = new Set(database.prepare('PRAGMA table_info(assessment_submissions)').all().map((column) => column.name));
-  if (!columns.has('callback_requested')) {
-    database.exec('ALTER TABLE assessment_submissions ADD COLUMN callback_requested INTEGER CHECK (callback_requested IN (0, 1))');
-  }
-  if (!columns.has('callback_requested_at')) {
-    database.exec('ALTER TABLE assessment_submissions ADD COLUMN callback_requested_at TEXT');
-  }
-  return database;
-}
-
 function pillar(record, name) {
   return record.pillars?.find((item) => item.name === name)?.pct ?? null;
 }
 
-export function saveAssessment(record, source) {
-  const db = openDatabase();
-  const result = db.prepare(`
+function requireDatabase(db) {
+  if (!db?.prepare) throw new Error('D1_DATABASE_BINDING_MISSING');
+  return db;
+}
+
+export async function saveAssessment(dbBinding, record, source) {
+  const result = await requireDatabase(dbBinding).prepare(`
     INSERT INTO assessment_submissions (
-      id, submitted_at, name, email, company, role, marketing_consent,
+      id, submitted_at, name, first_name, last_name, email, company, role, marketing_consent,
       assessment_path, baseline, score, tier, tier_description,
       knowledge_score, memory_score, governance_score,
       ranking_json, answers_json, recommendations_json, record_json, source
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)
     ON CONFLICT(id) DO NOTHING
-  `).run(
-    record.id,
-    record.submittedAt,
-    record.name,
-    record.email,
-    record.company,
-    record.role,
-    record.consent ? 1 : 0,
-    record.path,
-    record.baseline,
-    record.score ?? null,
-    record.tier ?? null,
-    record.tierDescription ?? null,
-    pillar(record, 'Knowledge'),
-    pillar(record, 'Memory'),
-    pillar(record, 'Governance'),
-    JSON.stringify(record.ranking),
-    JSON.stringify(record.answers || []),
-    JSON.stringify(record.actions || []),
-    JSON.stringify(record),
-    source,
-  );
+  `).bind(
+    record.id, record.submittedAt, record.name, record.firstName, record.lastName,
+    record.email, record.company, record.role, record.consent ? 1 : 0, record.path,
+    record.baseline, record.score ?? null, record.tier ?? null, record.tierDescription ?? null,
+    pillar(record, 'Knowledge'), pillar(record, 'Memory'), pillar(record, 'Governance'),
+    JSON.stringify(record.ranking), JSON.stringify(record.answers || []),
+    JSON.stringify(record.actions || []), JSON.stringify(record), source,
+  ).run();
 
   return {
     ok: true,
     id: record.id,
     status: 'SAVED',
-    storage: 'SQLITE',
-    duplicatePrevented: result.changes === 0,
+    storage: 'D1',
+    duplicatePrevented: result.meta?.changes === 0,
   };
 }
 
-export function getDatabasePath() {
-  return databaseFile();
-}
-
-export function setCallbackPreference(id, requested) {
-  const result = openDatabase().prepare(`
+export async function setCallbackPreference(dbBinding, id, requested) {
+  const result = await requireDatabase(dbBinding).prepare(`
     UPDATE assessment_submissions
-    SET callback_requested = ?, callback_requested_at = ?
-    WHERE id = ?
-  `).run(requested ? 1 : 0, new Date().toISOString(), id);
-  return result.changes === 1;
+    SET callback_requested = ?1, callback_requested_at = ?2
+    WHERE id = ?3
+  `).bind(requested ? 1 : 0, new Date().toISOString(), id).run();
+  return result.meta?.changes === 1;
 }
 
 function searchPattern(value) {
   return `%${String(value).replace(/[\\%_]/g, '\\$&')}%`;
 }
 
-export function listAssessments({search = '', limit = 50, offset = 0} = {}) {
-  const db = openDatabase();
+export async function listAssessments(dbBinding, {search = '', limit = 50, offset = 0} = {}) {
+  const db = requireDatabase(dbBinding);
   const cleanedSearch = String(search).trim().slice(0, 100);
   const safeLimit = Math.max(1, Math.min(Number(limit) || 50, 200));
   const safeOffset = Math.max(0, Number(offset) || 0);
   const where = cleanedSearch
-    ? `WHERE name LIKE @search ESCAPE '\\'
-        OR email LIKE @search ESCAPE '\\'
-        OR company LIKE @search ESCAPE '\\'
-        OR role LIKE @search ESCAPE '\\'
-        OR tier LIKE @search ESCAPE '\\'`
+    ? `WHERE first_name LIKE ?1 ESCAPE '\\'
+        OR last_name LIKE ?1 ESCAPE '\\'
+        OR name LIKE ?1 ESCAPE '\\'
+        OR email LIKE ?1 ESCAPE '\\'
+        OR company LIKE ?1 ESCAPE '\\'
+        OR role LIKE ?1 ESCAPE '\\'
+        OR tier LIKE ?1 ESCAPE '\\'`
     : '';
-  const params = cleanedSearch ? {search: searchPattern(cleanedSearch)} : {};
-  const countStatement = db.prepare(`SELECT COUNT(*) AS count FROM assessment_submissions ${where}`);
-  const total = (cleanedSearch ? countStatement.get(params) : countStatement.get()).count;
-  const rows = db.prepare(`
-    SELECT id, submitted_at, name, email, company, role, marketing_consent,
-      assessment_path, baseline, score, tier, tier_description,
-      knowledge_score, memory_score, governance_score,
-      ranking_json, answers_json, recommendations_json,
-      callback_requested, callback_requested_at
-    FROM assessment_submissions
-    ${where}
-    ORDER BY submitted_at DESC
-    LIMIT @limit OFFSET @offset
-  `).all({...params, limit: safeLimit, offset: safeOffset});
-  return {rows, total, search: cleanedSearch, limit: safeLimit, offset: safeOffset};
+  const pattern = cleanedSearch ? searchPattern(cleanedSearch) : null;
+  const count = cleanedSearch
+    ? db.prepare(`SELECT COUNT(*) AS count FROM assessment_submissions ${where}`).bind(pattern)
+    : db.prepare('SELECT COUNT(*) AS count FROM assessment_submissions');
+  const rows = cleanedSearch
+    ? db.prepare(`
+        SELECT id, submitted_at, name, first_name, last_name, email, company, role, marketing_consent,
+          assessment_path, baseline, score, tier, tier_description,
+          knowledge_score, memory_score, governance_score,
+          ranking_json, answers_json, recommendations_json,
+          callback_requested, callback_requested_at
+        FROM assessment_submissions ${where}
+        ORDER BY submitted_at DESC LIMIT ?2 OFFSET ?3
+      `).bind(pattern, safeLimit, safeOffset)
+    : db.prepare(`
+        SELECT id, submitted_at, name, first_name, last_name, email, company, role, marketing_consent,
+          assessment_path, baseline, score, tier, tier_description,
+          knowledge_score, memory_score, governance_score,
+          ranking_json, answers_json, recommendations_json,
+          callback_requested, callback_requested_at
+        FROM assessment_submissions
+        ORDER BY submitted_at DESC LIMIT ?1 OFFSET ?2
+      `).bind(safeLimit, safeOffset);
+  const [countResult, rowsResult] = await db.batch([count, rows]);
+  return {
+    rows: rowsResult.results || [],
+    total: Number(countResult.results?.[0]?.count || 0),
+    search: cleanedSearch,
+    limit: safeLimit,
+    offset: safeOffset,
+  };
 }
 
-export function getAssessmentStats() {
-  return openDatabase().prepare(`
+export async function getAssessmentStats(dbBinding) {
+  return requireDatabase(dbBinding).prepare(`
     SELECT
       COUNT(*) AS total,
       SUM(CASE WHEN assessment_path = 'full' THEN 1 ELSE 0 END) AS scored,
@@ -161,12 +104,12 @@ export function getAssessmentStats() {
       ROUND(AVG(CASE WHEN assessment_path = 'full' THEN score END), 1) AS average_score,
       MAX(submitted_at) AS latest_submission
     FROM assessment_submissions
-  `).get();
+  `).first();
 }
 
-export function getAssessmentsForExport() {
-  return openDatabase().prepare(`
-    SELECT id, submitted_at, name, email, company, role, marketing_consent,
+export async function getAssessmentsForExport(dbBinding) {
+  const result = await requireDatabase(dbBinding).prepare(`
+    SELECT id, submitted_at, name, first_name, last_name, email, company, role, marketing_consent,
       assessment_path, baseline, score, tier, tier_description,
       knowledge_score, memory_score, governance_score,
       ranking_json, answers_json, recommendations_json,
@@ -174,4 +117,5 @@ export function getAssessmentsForExport() {
     FROM assessment_submissions
     ORDER BY submitted_at DESC
   `).all();
+  return result.results || [];
 }

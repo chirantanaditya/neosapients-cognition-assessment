@@ -1,10 +1,11 @@
-import {isLocalAdminRequest} from '../../../lib/admin.js';
+import {hasAdminSession} from '../../../lib/admin.js';
 import {getAssessmentsForExport} from '../../../lib/database.js';
+import {env} from 'cloudflare:workers';
 
 export const prerender = false;
 
 const HEADERS = [
-  'submission_id', 'submitted_at', 'name', 'email', 'company', 'role', 'marketing_consent',
+  'submission_id', 'submitted_at', 'first_name', 'last_name', 'full_name', 'email', 'company', 'role', 'marketing_consent',
   'assessment_path', 'baseline', 'score', 'tier', 'tier_description',
   'knowledge_score', 'memory_score', 'governance_score',
   'priorities_json', 'answers_json', 'recommendations_json',
@@ -17,16 +18,20 @@ function csvCell(value) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-export function GET({request, clientAddress}) {
-  if (!isLocalAdminRequest(request, clientAddress)) {
-    return new Response('Local access only.', {status: 403});
+export async function GET({cookies}) {
+  const adminPassword = env.ADMIN_PASSWORD || '';
+  if (!adminPassword || !await hasAdminSession(cookies, adminPassword)) {
+    return new Response('Admin authentication required.', {
+      status: 401,
+      headers: {'Cache-Control': 'no-store'},
+    });
   }
 
-  const rows = getAssessmentsForExport();
+  const rows = await getAssessmentsForExport(env.DB);
   const csv = [
     HEADERS.map(csvCell).join(','),
     ...rows.map((row) => [
-      row.id, row.submitted_at, row.name, row.email, row.company, row.role,
+      row.id, row.submitted_at, row.first_name, row.last_name, row.name, row.email, row.company, row.role,
       row.marketing_consent, row.assessment_path, row.baseline, row.score, row.tier,
       row.tier_description, row.knowledge_score, row.memory_score, row.governance_score,
       row.ranking_json, row.answers_json, row.recommendations_json,

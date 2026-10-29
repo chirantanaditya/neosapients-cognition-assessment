@@ -5,6 +5,8 @@ import {deliverAssessment, deliverCallbackPreference} from './integrations.js';
 const record = {
   id: '88c4208f-64ad-4d4d-b6de-09ddfe4ad625',
   submittedAt: '2026-10-29T06:00:00.000Z',
+  firstName: 'Priya',
+  lastName: 'Shah',
   name: 'Priya Shah',
   email: 'priya@example.com',
   company: 'Example Bank',
@@ -42,6 +44,13 @@ test('delivers an assessment independently to all configured providers', async (
   });
   assert.equal(requests.length, 3);
   assert.equal(requests[0].options.headers['Idempotency-Key'], `assessment-result/${record.id}`);
+  const emailPayload = JSON.parse(requests[0].options.body);
+  assert.match(emailPayload.html, /NeoSapients can help you improve your score/);
+  assert.match(emailPayload.html, /https:\/\/calendly\.com\/d\/d3jg-s8t-fxy\/connect-with-neosapients/);
+  assert.match(emailPayload.html, />Book time with our Cognition Officer<\/a>/);
+  assert.doesNotMatch(emailPayload.html, /Explore Enterprise Cognition|Cognition Officer →/);
+  assert.match(emailPayload.text, /Book time with our Cognition Officer/);
+  assert.match(emailPayload.text, /https:\/\/calendly\.com\/d\/d3jg-s8t-fxy\/connect-with-neosapients/);
 });
 
 test('leaves Google Sheets pending without blocking configured providers', async () => {

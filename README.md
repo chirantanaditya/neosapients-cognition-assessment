@@ -1,13 +1,13 @@
 # NeoSapients Enterprise AI Cognition Assessment
 
-Standalone, offline Android TV assessment kiosk built with Astro and Capacitor. The APK bundles the complete interface and stores completed assessments in an on-device SQLite database. It does not require a Node server or internet connection.
+Standalone, offline Android assessment kiosk built with Astro and Capacitor. The APK bundles the complete interface and stores completed assessments in an on-device SQLite database. It does not require a Node server or internet connection.
 
 ## Ready-to-install APK
 
 The current debug build is:
 
 ```text
-artifacts/NeoSapients-Cognition-TV-debug-v1.0.apk
+artifacts/NeoSapients-Cognition-portrait-debug-v1.1.apk
 ```
 
 It is signed with the standard Android debug certificate and is suitable for sideloading and device testing. Create a separately signed release build before public distribution.
@@ -17,10 +17,10 @@ It is signed with the standard Android debug certificate and is suitable for sid
 Enable developer options and USB or wireless debugging on the TV, connect with ADB, then run:
 
 ```powershell
-adb install -r .\artifacts\NeoSapients-Cognition-TV-debug-v1.0.apk
+adb install -r .\artifacts\NeoSapients-Cognition-portrait-debug-v1.1.apk
 ```
 
-The app appears in the TV launcher as **NeoSapients Cognition**. It supports Android 7.0 / API 24 and later, is locked to landscape, and is operated with the D-pad, Select, Back and the Android TV keyboard.
+The app appears in the launcher as **NeoSapients Cognition**. It supports Android 7.0 / API 24 and later, is locked to portrait (including the Android 16 large-screen compatibility mode), and supports touch as well as D-pad, Select, Back and the Android keyboard.
 
 ## On-device behavior
 

@@ -27,13 +27,16 @@ import '../styles/result-screen.css';
         id="attract-video"
         muted
         playsinline
-        preload="none"
+        preload="auto"
         disablepictureinpicture
         disableRemotePlayback
         aria-label="NeoSapients showcase video"
       >
         <source src="/assets/attract-mode.mp4" type="video/mp4" />
       </video>
+      <button id="attract-start" class="attract-mode-cta" type="button">
+        Assess your AI readiness score
+      </button>
     </div>
     <script>
       import '../scripts/app.js';

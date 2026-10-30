@@ -7,7 +7,7 @@ Standalone, offline Android assessment kiosk built with Astro and Capacitor. The
 The current debug build is:
 
 ```text
-artifacts/NeoSapients-Cognition-portrait-debug-v1.1.apk
+artifacts/NeoSapients-Cognition-portrait-debug-v1.2.apk
 ```
 
 It is signed with the standard Android debug certificate and is suitable for sideloading and device testing. Create a separately signed release build before public distribution.
@@ -17,7 +17,7 @@ It is signed with the standard Android debug certificate and is suitable for sid
 Enable developer options and USB or wireless debugging on the TV, connect with ADB, then run:
 
 ```powershell
-adb install -r .\artifacts\NeoSapients-Cognition-portrait-debug-v1.1.apk
+adb install -r .\artifacts\NeoSapients-Cognition-portrait-debug-v1.2.apk
 ```
 
 The app appears in the launcher as **NeoSapients Cognition**. It supports Android 7.0 / API 24 and later, is locked to portrait (including the Android 16 large-screen compatibility mode), and supports touch as well as D-pad, Select, Back and the Android keyboard.
@@ -27,7 +27,7 @@ The app appears in the launcher as **NeoSapients Cognition**. It supports Androi
 - Assessment questions, scoring, results, imagery, fonts and attract-mode video are bundled in the APK.
 - Completed submissions are validated in JavaScript and written transactionally to native SQLite.
 - The app does not request internet access.
-- An inactivity period starts the full-screen attract video; any remote or pointer action returns to a fresh assessment.
+- After 30 seconds of inactivity, the square attract video starts and loops continuously; any remote or pointer action returns to a fresh assessment.
 - The Android Back button moves backward through the assessment. From the result it clears the session and returns to the start.
 - PDF generation is intentionally not included.
 

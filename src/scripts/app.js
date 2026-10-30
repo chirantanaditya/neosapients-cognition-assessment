@@ -90,7 +90,7 @@ import {isNativeApp, saveAssessment, setCallbackPreference} from '../lib/storage
  }
  function checkIdle(){if(attractActive||state.submitting||document.hidden)return;if(Date.now()-lastActivity>=config.attractSeconds*1000)showAttractMode();}
  ['pointerdown','pointerup','click','keydown','input'].forEach(event=>document.addEventListener(event,activity,{capture:true,passive:false}));
- attractStart.addEventListener('click',()=>{hideAttractMode();state=fresh();state.screen='question';state.index=0;lastActivity=Date.now();window.scrollTo(0,0);render(true);});
+ attractStart.addEventListener('click',closeAttractMode);
  attractVideo.addEventListener('error',closeAttractMode);
  document.addEventListener('keydown',e=>{if(state.screen!=='question'||['INPUT','TEXTAREA','BUTTON','A'].includes(e.target.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;const q=step();if(/^[0-9]$/.test(e.key)){const n=e.key==='0'?9:+e.key-1;if(q.kind==='rank')rank(n);else pick(n);e.preventDefault();}else if(e.key==='ArrowLeft'&&q.kind==='scored'){pick(0);e.preventDefault();}else if(e.key==='ArrowRight'&&q.kind==='scored'){pick(1);e.preventDefault();}else if(e.key==='Enter'||e.key==='ArrowRight'){next();e.preventDefault();}else if(e.key==='Backspace'||e.key==='ArrowLeft'){back();e.preventDefault();}});
  window.addEventListener('tv-back',()=>{if(attractActive){closeAttractMode();return;}if(state.screen==='result'){reset();return;}if(state.screen==='question'||state.screen==='lead')back();});

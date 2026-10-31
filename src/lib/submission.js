@@ -27,13 +27,13 @@ export function validateAndScoreSubmission(input) {
   const rawLead = input.lead || {};
   const lead = {
     name: cleanText(rawLead.name, 140, 'NAME'),
-    email: cleanText(rawLead.email || '', 254, 'EMAIL', false).toLowerCase(),
+    email: cleanText(rawLead.email, 254, 'EMAIL').toLowerCase(),
     company: cleanText(rawLead.company, 140, 'COMPANY'),
     role: cleanText(rawLead.role || '', 60, 'ROLE', false),
     consent: rawLead.consent === true,
   };
 
-  if (lead.email && (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(lead.email) || /[\r\n,;]/.test(lead.email))) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(lead.email) || /[\r\n,;]/.test(lead.email)) {
     throw new Error('INVALID_EMAIL');
   }
   if (!ROLES.has(lead.role)) throw new Error('INVALID_ROLE');

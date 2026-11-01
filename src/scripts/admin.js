@@ -109,13 +109,20 @@ elements.searchForm.addEventListener('submit', (event) => {
 elements.search.addEventListener('input', renderRows);
 
 elements.exportButton.addEventListener('click', async () => {
+  const password = window.prompt('Enter the troubleshooting password to export all submissions:');
+  if (password === null) {
+    elements.exportStatus.textContent = 'CSV export cancelled.';
+    return;
+  }
   elements.exportButton.disabled = true;
   elements.exportStatus.textContent = 'Preparing CSV export…';
   try {
-    const result = await exportAssessments(records);
+    const result = await exportAssessments(records, password);
     elements.exportStatus.textContent = result.path ? `CSV saved to ${result.path}` : 'CSV export created.';
-  } catch {
-    elements.exportStatus.textContent = 'The CSV could not be exported. Please try again.';
+  } catch (error) {
+    elements.exportStatus.textContent = error?.message === 'INVALID_EXPORT_PASSWORD'
+      ? 'Incorrect troubleshooting password.'
+      : 'The CSV could not be exported. Please try again.';
   } finally {
     elements.exportButton.disabled = false;
   }

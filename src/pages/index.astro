@@ -22,6 +22,22 @@ import '../styles/result-screen.css';
   <body>
     <div id="app"></div>
     <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+    <div id="troubleshoot-modal" class="troubleshoot-modal" role="dialog" aria-modal="true" aria-labelledby="troubleshoot-title" hidden>
+      <form id="troubleshoot-form" class="troubleshoot-card" autocomplete="off">
+        <div class="troubleshoot-heading">
+          <div>
+            <span>Protected export</span>
+            <h2 id="troubleshoot-title">Troubleshoot</h2>
+          </div>
+          <button id="troubleshoot-close" class="troubleshoot-close" type="button" aria-label="Close troubleshooting">×</button>
+        </div>
+        <p>Enter the troubleshooting password to export every saved submission as a CSV file.</p>
+        <label for="troubleshoot-password">Password</label>
+        <input id="troubleshoot-password" name="password" type="password" autocomplete="off" required aria-describedby="troubleshoot-status" />
+        <p id="troubleshoot-status" class="troubleshoot-status" role="status" aria-live="polite"></p>
+        <button id="troubleshoot-export" class="primary" type="submit">Export all submissions <span aria-hidden="true">↓</span></button>
+      </form>
+    </div>
     <div id="attract-mode" class="attract-mode" hidden aria-label="NeoSapients showcase video">
       <video
         id="attract-video"

@@ -1,5 +1,6 @@
 import {Capacitor, registerPlugin} from '@capacitor/core';
 import {validateAndScoreSubmission} from './submission.js';
+import {verifyTroubleshootPassword} from './troubleshoot.js';
 
 const AssessmentStore = registerPlugin('AssessmentStore');
 const FALLBACK_KEY = 'neosapients.assessments.v1';
@@ -57,6 +58,7 @@ const CSV_HEADERS = [
   'assessment_path', 'baseline', 'score', 'tier', 'tier_description',
   'knowledge_score', 'memory_score', 'governance_score', 'priorities_json',
   'answers_json', 'recommendations_json', 'follow_up_requested', 'follow_up_requested_at',
+  'complete_submission_json',
 ];
 
 function csvCell(value) {
@@ -77,12 +79,13 @@ export function assessmentsToCsv(records) {
     pillar(record, 'Governance'), JSON.stringify(record.ranking || []),
     JSON.stringify(record.answers || []), JSON.stringify(record.actions || []),
     record.callbackRequested == null ? '' : record.callbackRequested ? 1 : 0,
-    record.callbackRequestedAt || '',
+    record.callbackRequestedAt || '', JSON.stringify(record),
   ]);
   return `\uFEFF${[CSV_HEADERS, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')}`;
 }
 
-export async function exportAssessments(records) {
+export async function exportAssessments(records, password) {
+  if (!await verifyTroubleshootPassword(password)) throw new Error('INVALID_EXPORT_PASSWORD');
   const date = new Date().toISOString().slice(0, 10);
   const filename = `neosapients-assessments-${date}.csv`;
   const content = assessmentsToCsv(records);

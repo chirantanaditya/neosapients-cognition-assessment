@@ -101,8 +101,17 @@ button{user-select:none;-webkit-user-select:none}
 .offline-badge{padding:7px 12px;border:1px solid #ddcdeb;border-radius:30px;background:#fff9}
 .offline-badge:before,.local-status i{content:'';width:7px;height:7px;border-radius:50%;background:#4f9b7b;box-shadow:0 0 0 3px #4f9b7b18}
 .local-status i{display:block;flex:none}
+.troubleshoot-link{min-height:44px;padding:8px 0;background:transparent;color:#9459b7;font-size:inherit;font-weight:500}
+.troubleshoot-link:hover{color:#65377f;text-decoration:underline;text-underline-offset:4px}
+.troubleshoot-modal{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:24px;background:#19063680;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.troubleshoot-modal[hidden]{display:none}
+.troubleshoot-card{width:min(480px,100%);padding:34px;border:1px solid #e1d1ea;border-radius:16px;background:#faf7fc;box-shadow:0 28px 90px #11002266}
+.troubleshoot-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}.troubleshoot-heading span{display:block;margin-bottom:7px;color:#9563ad;font-size:9px;letter-spacing:.15em;text-transform:uppercase}.troubleshoot-heading h2{font-size:34px;letter-spacing:-.04em}.troubleshoot-close{width:44px;height:44px;border-radius:50%;background:#eee3f4;color:#6e487f;font-size:25px;line-height:1}
+.troubleshoot-card>p{margin:17px 0 22px;color:#806c8b;font-size:13px;line-height:1.75}.troubleshoot-card label{display:block;margin-bottom:8px;color:#70577f;font-size:11px}.troubleshoot-card input{width:100%;height:58px;padding:14px;border:1px solid #d6c3e1;border-radius:8px;background:#fff;color:#392170;font-size:18px}.troubleshoot-card .troubleshoot-status{min-height:42px;margin:9px 0 12px;color:#8a4cac;font-size:11px}.troubleshoot-card .primary{width:100%;min-width:0}
+body.troubleshoot-active{overflow:hidden}
 @media(pointer:coarse){
  button,.primary,.back,.role,.rank-choice{min-height:60px}
+ .troubleshoot-link{min-height:44px}
  .choice{touch-action:manipulation}
  .primary:hover:not(:disabled),.choice:hover{transform:none}
  .reset{min-width:120px}
@@ -112,9 +121,9 @@ button{user-select:none;-webkit-user-select:none}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 /* Square attract mode for an unattended portrait kiosk. */
-.attract-mode{position:fixed;inset:0;z-index:1000;width:100vw;height:100svh;background:#000;overflow:hidden;touch-action:none;display:grid;place-items:center}
+.attract-mode{position:fixed;inset:0;z-index:1000;width:100vw;height:100svh;background:#0006;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overflow:hidden;touch-action:none;display:grid;place-items:center}
 .attract-mode[hidden]{display:none}
-.attract-mode video{display:block;width:min(100vw,100svh);height:auto;aspect-ratio:1;object-fit:contain;background:#000;pointer-events:none}
+.attract-mode video{display:block;width:min(100vw,100svh);height:auto;aspect-ratio:1;object-fit:contain;background:transparent;pointer-events:none}
 .attract-mode-cta{position:absolute;z-index:1;left:50%;bottom:clamp(34px,7vh,76px);transform:translateX(-50%);min-height:58px;padding:15px 26px;border:1px solid #ffffff80;border-radius:8px;background:#190636e8;color:#fff;box-shadow:0 12px 32px #0008;font-size:clamp(15px,1.35vw,19px);font-weight:500;white-space:nowrap;cursor:pointer;backdrop-filter:blur(8px);transition:background .2s,transform .2s,box-shadow .2s}
 .attract-mode-cta:hover{background:#392170;transform:translateX(-50%) translateY(-2px);box-shadow:0 16px 38px #000a}
 .attract-mode-cta:focus-visible{outline-color:#fff;outline-offset:5px}
